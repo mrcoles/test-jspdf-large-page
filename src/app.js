@@ -11,8 +11,11 @@ const toggleCanvasBtn = $("#toggle")[0];
 const canvas = $("#c")[0];
 const ctx = canvas.getContext("2d");
 
-const width = 1400;
-const height = 20000;
+const WIDTH = 1400;
+const HEIGHT = 20000;
+
+const MAX_WIDTH = 14400;
+const MAX_HEIGHT = 14400;
 
 // Main
 
@@ -33,12 +36,12 @@ const main = () => {
 // Functions
 
 const paintCanvas = () => {
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
 
   Object.assign(canvas.style, {
-    width: `${width}px`,
-    height: `${height}px`
+    width: `${WIDTH}px`,
+    height: `${HEIGHT}px`
   });
 
   const _colors = ["#F00", "#F90", "#FF0", "#0F0", "#00F", "#0FF"];
@@ -55,9 +58,9 @@ const paintCanvas = () => {
   const rowHeight = 200;
 
   let i = 0;
-  while (i * rowHeight < height) {
+  while (i * rowHeight < HEIGHT) {
     ctx.fillStyle = nextColor();
-    ctx.fillRect(0, i * rowHeight, width, rowHeight);
+    ctx.fillRect(0, i * rowHeight, WIDTH, rowHeight);
     ctx.fillStyle = "#fff";
     ctx.fillText(`ROW: ${i}`, 20, i * rowHeight + 10);
     i++;
@@ -65,15 +68,41 @@ const paintCanvas = () => {
 };
 
 const makePdf = () => {
-  let doc = new jsPDF({
-    orientation: "portrait",
-    unit: "pt", // in, mm
-    format: [width, height],
-    compressPdf: true
-  });
+  let doc;
+  let remainingWidth = canvas.width;
+  let remainingHeight = canvas.height;
+  let curX = 0;
+  let curY = 0;
 
-  let dataURL = canvas.toDataURL("image/png", 1);
-  doc.addImage(dataURL, "JPEG", 0, 0, width, height);
+  let first = true;
+
+  while (true) {
+    let [curWidth, curHeight] = getNextDims(remainingWidth, remainingHeight);
+    console.log("CUR_WIDTH", curWidth, "CUR_HEIGHT", curHeight); //REMM
+    if (curWidth <= 0 || curHeight <= 0) {
+      break;
+    }
+    if (first) {
+      doc = new jsPDF({
+        orientation: "portrait",
+        unit: "pt", // in, mm
+        format: [curWidth, curHeight],
+        compressPdf: true
+      });
+      first = false;
+    } else {
+      doc.addPage(curWidth, curHeight);
+    }
+
+    const img = sliceImage(canvas, curX, curY, curWidth, curHeight);
+    const dataURL = img.toDataURL("image/jpeg", 1);
+    doc.addImage(dataURL, "JPEG", 0, 0, curWidth, curHeight);
+
+    // TODO - cut width also...
+    remainingHeight -= curHeight;
+    curY += curHeight;
+  }
+
   let blob = dataToBlob(doc.output(), "application/pdf");
   let url = window.URL.createObjectURL(blob);
 
@@ -85,3 +114,20 @@ const makePdf = () => {
   pdfWrapElt.innerHTML = "";
   pdfWrapElt.appendChild(link);
 };
+
+const getNextDims = (width, height) => {
+  return [Math.min(width, MAX_WIDTH), Math.min(height, MAX_HEIGHT)];
+};
+
+const sliceImage = (img, x, y, width, height) => {
+  const canv = document.createElement("canvas");
+  const ctx = canv.getContext("2d");
+  canv.width = width;
+  canv.height = height;
+  ctx.drawImage(img, -x, -y);
+  return canv;
+};
+
+// Main
+
+main();
