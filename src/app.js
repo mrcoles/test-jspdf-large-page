@@ -85,3 +85,7 @@ const makePdf = () => {
   pdfWrapElt.innerHTML = "";
   pdfWrapElt.appendChild(link);
 };
+
+//
+
+main();
