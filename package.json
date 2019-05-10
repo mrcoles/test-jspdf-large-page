@@ -1,5 +1,5 @@
 {
-  "name": "jspdf-page-test",
+  "name": "test-jspdf-large-page",
   "version": "1.0.0",
   "scripts": {
     "start": "parcel src/index.html"
